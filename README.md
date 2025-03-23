@@ -107,7 +107,7 @@ A typical implementation flow for **BCH(1023,1001)** is:
    - Append the ECC (22 bits) to form the final codeword C(x).
 5. **Transmission**: Send the 125-byte data + 3-byte ECC over MQTT.
 6. **Decoding**:
-   - Receive codeword C'(x). If no errors, C'(x) = C(x).
+   - Receive codeword C'(x). If no errors, C'(x) ≈ C(x).
    - Compute syndrome S(x) = C'(x) mod G(x).
    - If S(x)=0, no errors. If not zero, attempt up to 2-bit error correction.
    - Corrected codeword yields the original message M(x).
