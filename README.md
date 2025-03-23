@@ -41,16 +41,16 @@ Used when sensor data does not fit in a single frame. Contains only sensor block
 | Sensor Count | 1            | Number of sensor blocks in this frame      |
 
 ### Sensor Block Format
-| Field        | Size       | Description                                                                 |
-|-------------|-----------|-----------------------------------------------------------------------------|
-| Sensor Type  | 2 bytes    | Sensor type ID (see registry below)                                        |
-| Value Count  | 1 byte     | Number of float32 values (includes serial if real sensor)                   |
-| Values       | N * 4 bytes| float32 array. First = serial (if real), subsequent = measured or meta data |
+| Field        | Size        | Description                                                                 |
+|-------------|------------|-----------------------------------------------------------------------------|
+| Sensor Type  | 2 bytes     | Sensor type ID (see registry below)                                        |
+| Value Count  | 1 byte      | Number of float32 values (includes serial if real sensor)                   |
+| Values       | N * 4 bytes | float32 array. First = serial (if real), subsequent = measured or meta data |
 
 ### ECC (Error Correction Code)
-| Field | Size (Bytes) | Description                               |
-|------|--------------|-------------------------------------------|
-| ECC  | 3            | 22-bit BCH(1023,1001) for 125-byte payload |
+| Field | Size (Bytes) | Description                                  |
+|------|--------------|----------------------------------------------|
+| ECC  | 3            | 22-bit BCH(1023,1001) for 125-byte payload   |
 
 ---
 
@@ -97,7 +97,7 @@ Each frame is protected independently, ensuring that multi-frame messages can be
 
 ### Detailed BCH Algorithm
 
-A typical implementation flow for BCH(1023,1001) is:
+A typical implementation flow for **BCH(1023,1001)** is:
 1. **Message Preparation**: Collect up to 125 bytes (1000 bits) of payload + 1 padding bit to make 1001.
 2. **Galois Field Setup**: The code is defined over GF(2^m), typically m=10 for length 1023.
 3. **Polynomial Representation**: The generator polynomial G(x) is chosen to correct up to 2 bits.
@@ -138,15 +138,16 @@ This optimization maintains BCH(1023,1001) protection while lowering the transmi
 
 | Sensor Type | Description                | Notes                                                 |
 |------------:|----------------------------|-------------------------------------------------------|
-| 0           | Timestamp                  | Virtual/metadata                                      |
-| 1           | GPS Position (3D)          | Virtual/metadata                                      |
-| 2           | BME280                     | Real: Temp, Humidity, Pressure                       |
-| 3           | SHT41                      | Real: Temp, Humidity                                 |
-| 4           | AHT20                      | Real: Temp, Humidity                                 |
-| 5           | TMP117                     | Real: Temp only                                      |
+| 0           | Battery Voltage            | Virtual/metadata                                      |
+| 1           | Timestamp                  | Virtual/metadata                                      |
+| 2           | GPS Position (3D)          | Virtual/metadata                                      |
+| 3           | BME280                     | Real: Temperature, Humidity, Pressure                |
+| 4           | SHT41                      | Real: Temperature, Humidity                          |
+| 5           | AHT20                      | Real: Temperature, Humidity                          |
+| 6           | TMP117                     | Real: Temperature only                               |
 
 ### 🆕 Adding Sensor Types
-- **Real sensor types**: assign the next available ID ≥ 6
+- **Real sensor types**: assign the next available ID ≥ 7
 - **Virtual/metadata sensor types**: assign a unique ID and document its layout
 - All sensor types must be globally unique and documented
 
@@ -155,7 +156,19 @@ This optimization maintains BCH(1023,1001) protection while lowering the transmi
 ---
 
 ## 📡 Example Virtual Sensors
-### Timestamp Block (Sensor Type: 0)
+### Battery Voltage Block (Sensor Type: 0)
+- Value Count: 1
+- Values: float32 (Battery voltage in Volts)
+
+Example:
+- Voltage: 3.76 V
+
+```hex
+00 00 01
+40 70 66 66   # 3.76 (approx)
+```
+
+### Timestamp Block (Sensor Type: 1)
 - Value Count: 2
 - Values: float32 (high and low parts of UNIX timestamp in nanoseconds)
 
@@ -164,12 +177,12 @@ Example:
 - Float64 split into hi/lo float32s:
 
 ```hex
-00 00 02
+00 01 02
 5E 6B D3 00   # hi part
 49 96 02 2B   # lo part
 ```
 
-### GPS Coordinates Block (Sensor Type: 1)
+### GPS Coordinates Block (Sensor Type: 2)
 - Value Count: 3
 - Values: float32 (latitude, longitude, altitude)
 
@@ -179,7 +192,7 @@ Example:
 - Altitude: 519.0 m
 
 ```hex
-00 01 03
+00 02 03
 42 20 AE D0   # lat = 48.1351
 41 5A 60 3D   # lon = 11.5820
 44 03 00 00   # alt = 519.0
@@ -188,7 +201,7 @@ Example:
 ---
 
 ## 🌡️ Example Sensor Blocks
-### BME280 (Sensor Type: 2)
+### BME280 (Sensor Type: 3)
 - Value Count: 4
 - Values:
   - Serial: 0x10000001
@@ -197,14 +210,14 @@ Example:
   - Pressure: 1012.6 hPa
 
 ```hex
-00 02 04
+00 03 04
 10 00 00 01
 41 B4 00 00   # temp
 42 34 66 66   # humidity
 44 7E 66 66   # pressure
 ```
 
-### SHT41 (Sensor Type: 3)
+### SHT41 (Sensor Type: 4)
 - Value Count: 3
 - Values:
   - Serial: 0x10000002
@@ -212,13 +225,13 @@ Example:
   - Humidity: 48.5 %RH
 
 ```hex
-00 03 03
+00 04 03
 10 00 00 02
 41 AE 66 66   # temp
 42 38 00 00   # humidity
 ```
 
-### AHT20 (Sensor Type: 4)
+### AHT20 (Sensor Type: 5)
 - Value Count: 3
 - Values:
   - Serial: 0x10000004
@@ -226,20 +239,20 @@ Example:
   - Humidity: 46.7 %RH
 
 ```hex
-00 04 03
+00 05 03
 10 00 00 04
 41 B0 CC CD   # temp
 42 3A CC CD   # humidity
 ```
 
-### TMP117 (Sensor Type: 5)
+### TMP117 (Sensor Type: 6)
 - Value Count: 2
 - Values:
   - Serial: 0x10000003
   - Temp: 23.25 °C
 
 ```hex
-00 05 02
+00 06 02
 10 00 00 03
 41 BA 00 00   # temp
 ```
@@ -301,8 +314,8 @@ Maximum payload per frame: **125 bytes**, followed by **3-byte ECC**.
 ### 🔹 Example 1 – Single Frame: BME280 + SHT41 (No GPS or Timestamp)
 
 **Sensors:**
-- BME280 (Sensor Type: 2)
-- SHT41 (Sensor Type: 3)
+- BME280 (Sensor Type: 3)
+- SHT41 (Sensor Type: 4)
 
 **Frame Header:**
 ```
@@ -319,13 +332,13 @@ DE AD BE EF       # MCU Serial
 
 **Sensor Blocks:**
 ```
-00 02 04          # BME280: type=2, count=4
+00 03 04          # BME280: type=3, count=4
 10 00 00 01       # Serial = 0x10000001
 41 B4 00 00       # Temp = 22.5
 42 34 66 66       # Hum = 45.3
 44 7E 66 66       # Press = 1012.6
 
-00 03 03          # SHT41: type=3, count=3
+00 04 03          # SHT41: type=4, count=3
 10 00 00 02       # Serial = 0x10000002
 41 AE 66 66       # Temp = 21.8
 42 38 00 00       # Hum = 48.5
@@ -338,7 +351,7 @@ XX XX XX          # 3-byte BCH ECC
 
 ---
 
-### 🔸 Example 2 – Two Frames: Timestamp, GPS, BME280, SHT41, AHT20, TMP117, + Additional
+### 🔸 Example 2 – Two Frames: Battery Voltage, Timestamp, GPS, BME280, SHT41, AHT20, TMP117, + Additional
 
 **Frame 1 (Primary)**
 ```
@@ -355,25 +368,23 @@ XX XX XX          # 3-byte BCH ECC
 
 **Sensor Blocks (fills primary frame up to ~125 bytes)**
 ```
-00 00 02          # Timestamp block: type=0, count=2
+00 00 01          # Battery Voltage block: type=0, count=1
+40 70 66 66       # ~3.76 V
+
+00 01 02          # Timestamp block: type=1, count=2
 5E 6B D3 00       # hi part
 49 96 02 2B       # lo part
 
-00 01 03          # GPS: type=1, count=3
+00 02 03          # GPS: type=2, count=3
 42 20 AE D0       # lat=48.1351
 41 5A 60 3D       # lon=11.5820
 44 03 00 00       # alt=519.0
 
-00 02 04          # BME280: type=2, count=4
+00 03 04          # BME280: type=3, count=4
 10 00 00 01       # Serial=0x10000001
 41 B4 00 00       # 22.5
 42 34 66 66       # 45.3
 44 7E 66 66       # 1012.6
-
-00 03 03          # SHT41: type=3, count=3
-10 00 00 02       # Serial=0x10000002
-41 AE 66 66       # 21.8
-42 38 00 00       # 48.5
 ```
 
 **ECC:**
@@ -394,19 +405,19 @@ XX XX XX
 
 **Sensor Blocks:**
 ```
-00 04 03          # AHT20 (type=4), count=3
+00 04 03          # SHT41 (type=4), count=3
+10 00 00 02       # Serial=0x10000002
+41 AE 66 66       # 21.8
+42 38 00 00       # 48.5
+
+00 05 03          # AHT20 (type=5), count=3
 10 00 00 04       # Serial=0x10000004
 41 B0 CC CD       # 22.1
 42 3A CC CD       # 46.7
 
-00 05 02          # TMP117 (type=5), count=2
+00 06 02          # TMP117 (type=6), count=2
 10 00 00 03       # Serial=0x10000003
 41 BA 00 00       # 23.25
-
-00 06 03          # Placeholder sensor (type=6), count=3
-10 00 00 06       # Serial=0x10000006
-40 00 00 00       # value1=2.0
-40 40 00 00       # value2=3.0
 ```
 
 **ECC:**
@@ -414,7 +425,7 @@ XX XX XX
 XX XX XX
 ```
 
-📌 Here, the first frame is used as fully as possible (4 sensor blocks). The leftover sensors go into the second frame.
+📌 Here, the first frame is used as fully as possible (4 sensor blocks). The leftover sensors (SHT41, AHT20, TMP117) go into the second frame. You could also add placeholder sensor blocks if more data is needed.
 
 ---
 
