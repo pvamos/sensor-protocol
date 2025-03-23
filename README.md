@@ -367,7 +367,7 @@ XX XX XX          # 3-byte BCH ECC
 08                # Sensor Count = 8
 ```
 
-**Sensor Blocks (fills primary frame near ~125 bytes)**
+**Sensor Blocks (fills primary frame up until 125 bytes)**
 ```
 00 00 01          # Battery Voltage: type=0, count=1
 40 70 66 66       # ~3.76 V
@@ -400,12 +400,6 @@ XX XX XX          # 3-byte BCH ECC
 00 06 02          # TMP117: type=6, count=2
 10 00 00 03       # Serial=0x10000003
 41 BA 00 00       # 23.25
-
-00 07 04          # Placeholder (type=7?), count=4
-10 00 00 07       # Serial=0x10000007
-40 00 00 00       # val1=2.0
-40 40 00 00       # val2=3.0
-40 80 00 00       # val3=4.0
 ```
 
 **ECC:**
@@ -426,6 +420,12 @@ XX XX XX
 
 **Sensor Blocks:**
 ```
+00 07 04          # Placeholder (type=7?), count=4
+10 00 00 07       # Serial=0x10000007
+40 00 00 00       # val1=2.0
+40 40 00 00       # val2=3.0
+40 80 00 00       # val3=4.0
+
 00 08 02          # Another placeholder (type=8?), count=2
 10 00 00 08       # Serial=0x10000008
 40 00 00 00       # val1=2.0
