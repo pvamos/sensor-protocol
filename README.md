@@ -98,8 +98,8 @@ Each frame is protected independently, ensuring that multi-frame messages can be
 ### Detailed BCH Algorithm
 
 A typical implementation flow for **BCH(1023,1001)** is:
-1. **Message Preparation**: Collect up to 125 bytes (1000 bits) of payload + 1 padding bit to make 1001.
-2. **Galois Field Setup**: The code is defined over GF(2^m), typically m=10 for length 1023.
+1. **Message Preparation**:  Collect up to 125 bytes (1000 bits) of payload + 1 padding bit to make 1001.
+2. **Galois Field Setup**:   The code is defined over GF(2^m), typically m=10 for length 1023.
 3. **Polynomial Representation**: The generator polynomial G(x) is chosen to correct up to 2 bits.
 4. **Encoding**:
    - Represent the payload bits as a polynomial M(x).
@@ -107,7 +107,7 @@ A typical implementation flow for **BCH(1023,1001)** is:
    - Append the ECC (22 bits) to form the final codeword C(x).
 5. **Transmission**: Send the 125-byte data + 3-byte ECC over MQTT.
 6. **Decoding**:
-   - Receive codeword C'(x). If no errors, C'(x) ≈ C(x).
+   - Receive codeword C'(x). If no errors, C'(x) = C(x).
    - Compute syndrome S(x) = C'(x) mod G(x).
    - If S(x)=0, no errors. If not zero, attempt up to 2-bit error correction.
    - Corrected codeword yields the original message M(x).
@@ -156,6 +156,7 @@ This optimization maintains BCH(1023,1001) protection while lowering the transmi
 ---
 
 ## 📡 Example Virtual Sensors
+
 ### Battery Voltage Block (Sensor Type: 0)
 - Value Count: 1
 - Values: float32 (Battery voltage in Volts)
@@ -363,15 +364,15 @@ XX XX XX          # 3-byte BCH ECC
 02                # MCU Type = STM32
 12 34 56 78       # MCU Serial
 00 02             # Firmware v0.2
-04                # Sensor Count = 4
+08                # Sensor Count = 8
 ```
 
-**Sensor Blocks (fills primary frame up to ~125 bytes)**
+**Sensor Blocks (fills primary frame near ~125 bytes)**
 ```
-00 00 01          # Battery Voltage block: type=0, count=1
+00 00 01          # Battery Voltage: type=0, count=1
 40 70 66 66       # ~3.76 V
 
-00 01 02          # Timestamp block: type=1, count=2
+00 01 02          # Timestamp: type=1, count=2
 5E 6B D3 00       # hi part
 49 96 02 2B       # lo part
 
@@ -385,6 +386,26 @@ XX XX XX          # 3-byte BCH ECC
 41 B4 00 00       # 22.5
 42 34 66 66       # 45.3
 44 7E 66 66       # 1012.6
+
+00 04 03          # SHT41: type=4, count=3
+10 00 00 02       # Serial=0x10000002
+41 AE 66 66       # 21.8
+42 38 00 00       # 48.5
+
+00 05 03          # AHT20: type=5, count=3
+10 00 00 04       # Serial=0x10000004
+41 B0 CC CD       # 22.1
+42 3A CC CD       # 46.7
+
+00 06 02          # TMP117: type=6, count=2
+10 00 00 03       # Serial=0x10000003
+41 BA 00 00       # 23.25
+
+00 07 04          # Placeholder (type=7?), count=4
+10 00 00 07       # Serial=0x10000007
+40 00 00 00       # val1=2.0
+40 40 00 00       # val2=3.0
+40 80 00 00       # val3=4.0
 ```
 
 **ECC:**
@@ -400,24 +421,20 @@ XX XX XX
 01                # Version
 00 02             # Message ID = 2
 00                # Flags=0 (no more continuation)
-03                # Sensor Count=3
+02                # Sensor Count=2
 ```
 
 **Sensor Blocks:**
 ```
-00 04 03          # SHT41 (type=4), count=3
-10 00 00 02       # Serial=0x10000002
-41 AE 66 66       # 21.8
-42 38 00 00       # 48.5
+00 08 02          # Another placeholder (type=8?), count=2
+10 00 00 08       # Serial=0x10000008
+40 00 00 00       # val1=2.0
 
-00 05 03          # AHT20 (type=5), count=3
-10 00 00 04       # Serial=0x10000004
-41 B0 CC CD       # 22.1
-42 3A CC CD       # 46.7
-
-00 06 02          # TMP117 (type=6), count=2
-10 00 00 03       # Serial=0x10000003
-41 BA 00 00       # 23.25
+00 09 04          # Another placeholder (type=9?), count=4
+10 00 00 09       # Serial=0x10000009
+40 10 00 00       # val1=2.25
+40 60 00 00       # val2=3.5
+40 90 00 00       # val3=4.5
 ```
 
 **ECC:**
@@ -425,8 +442,9 @@ XX XX XX
 XX XX XX
 ```
 
-📌 Here, the first frame is used as fully as possible (4 sensor blocks). The leftover sensors (SHT41, AHT20, TMP117) go into the second frame. You could also add placeholder sensor blocks if more data is needed.
+📌 Here, the first frame includes **8 sensor blocks**, aiming for ~125 bytes of payload, and the second frame carries 2 more placeholder blocks.
 
 ---
 
-> These examples demonstrate how data can be encoded in a compact, extensible binary structure, and how multi-frame messages work with robust ECC per frame.
+> These examples demonstrate how data can be encoded in a compact, extensible binary structure, with one nearly-full primary frame and a second continuation frame, all protected by BCH error correction.
+
