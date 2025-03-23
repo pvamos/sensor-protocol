@@ -155,6 +155,20 @@ This optimization maintains BCH(1023,1001) protection while lowering the transmi
 ---
 
 ## 📡 Example Virtual Sensors
+### Timestamp Block (Sensor Type: 0)
+- Value Count: 2
+- Values: float32 (high and low parts of UNIX timestamp in nanoseconds)
+
+Example:
+- Timestamp: 1700000000123456789 ns (2023-11-14T00:13:20Z)
+- Float64 split into hi/lo float32s:
+
+```hex
+00 00 02
+5E 6B D3 00   # hi part
+49 96 02 2B   # lo part
+```
+
 ### GPS Coordinates Block (Sensor Type: 1)
 - Value Count: 3
 - Values: float32 (latitude, longitude, altitude)
@@ -169,20 +183,6 @@ Example:
 42 20 AE D0   # lat = 48.1351
 41 5A 60 3D   # lon = 11.5820
 44 03 00 00   # alt = 519.0
-```
-
-### Timestamp Block (Sensor Type: 0)
-- Value Count: 2
-- Values: float32 (high and low parts of UNIX timestamp in nanoseconds)
-
-Example:
-- Timestamp: 1700000000123456789 ns (2023-11-14T00:13:20Z)
-- Float64 split into hi/lo float32s:
-
-```hex
-00 00 02
-5E 6B D3 00   # hi part
-49 96 02 2B   # lo part
 ```
 
 ---
