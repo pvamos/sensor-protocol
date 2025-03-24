@@ -14,7 +14,7 @@ The format supports robust error correction using BCH(1023,1001), optional field
 ## 📦 Frame Types
 
 The maximum frame size is **125 bytes** of data plus **3 bytes** of ECC.
-Primary frames and continuation frames are typically transmitted in the same TCP/MQTT package, frames exist only to fit the ECC block size.
+Primary frames and continuation frames are transmitted together, typically in the same TCP/MQTT package, frames exist only to fit the ECC block size.
 
 ### 1. Primary Frame
 
@@ -49,10 +49,10 @@ Boolean flags are bits of the **Flags** field in frame header. ( 1 = True / Enab
 
 | Field               | Size (Bytes) | Description                                                         |
 |---------------------|--------------|---------------------------------------------------------------------|
-| **Magic Bytes**     | 2            | ASCII "ESN" (0x45 0x53 0x4E)                                        |
+| **Magic Bytes**     | 2            | ASCII "SN" (0x53 0x4E)                                              |
 | **Version**         | 1            | Protocol version (0x01)                                             |
 | **Flags**           | 1            | Bit 0 = Continuation Flag, other bits: see Flags description below  |
-| **Message ID**      | 2            | 16-bit message sequence ID (rolls over)                             |
+| **Message ID**      | 4            | 32-bit message sequence ID (rolls over)                             |
 | **Location ID**     | 6            | Unique 48-bit deployment ID                                         |
 | **Sensor Count**    | 1            | Number of sensor blocks in this frame                               |
 | **MCU Type**        | 1            | **optional** Device type (e.g. 1 = ESP32, 2 = STM32)                |
@@ -142,9 +142,10 @@ Maximum payload per frame: **125 bytes**, followed by **3-byte ECC**.
 
 ## 🌐 Total Theoretical Device Capacity
 
-- **Location ID:** 2^40 = 1.1 trillion locations
-- **MCU Serial:** 2^32 (MAC address)
-- **Sensor Type IDs:** 2^16 = 65536
+- **Location ID:** 2^48 = ~281 trillion locations
+- **Message ID** 2^32 = 4 294 967 296 (rolls over)
+- **MCU Serial:** 2^96 (UID / left zero padded MAC address)
+- **Sensor Type IDs:** 2^16 = 65 536
 - **Timestamp Range:** 64-bit nanoseconds (covers until year 2262)
 
 ---
@@ -187,11 +188,11 @@ All values are encoded as IEEE 754 **float32** (4 bytes each).
 | Sensor Type | Description        | Values | Notes                                  |
 |-------------|--------------------|--------|----------------------------------------|
 | 0           | Battery Voltage    | 1      | Virtual/metadata                       |
-| 1           | Timestamp          | 1      | Virtual/metadata                       |
-| 2           | GPS Position (3D)  | 1      | Virtual/metadata                       |
-| 3           | BME280             | 1      | Real: Temperature, Humidity, Pressure  |
-| 4           | SHT41              | 1      | Real: Temperature, Humidity            |
-| 5           | AHT20              | 1      | Real: Temperature, Humidity            |
+| 1           | Timestamp          | 2      | Virtual/metadata                       |
+| 2           | GPS Position (3D)  | 3      | Virtual/metadata                       |
+| 3           | BME280             | 3      | Real: Temperature, Humidity, Pressure  |
+| 4           | SHT41              | 2      | Real: Temperature, Humidity            |
+| 5           | AHT20              | 2      | Real: Temperature, Humidity            |
 | 6           | TMP117             | 1      | Real: Temperature only                 |
 
 > The `Values` value does not contain the optional Sensor Serial / ID field.
@@ -412,13 +413,13 @@ Optional fields/values omitted:
 ```
 53 4E              # Magic "SN"
 01                 # Version
-00 01              # Message ID = 1
+00 00 00 01        # Message ID = 1
 00                 # Flags (no continuation or optional fields/values)
 01 02 03 04 05 06  # Location ID
 02                 # Sensor Count = 2
 ```
 
-Frame Header size: 13 bytes
+Frame Header size: 15 bytes
 
 **Sensor Blocks:**
 ```
@@ -441,7 +442,7 @@ XX XX XX          # 3-byte BCH ECC
 
 ECC size: 3 Bytes
 
-Whole message (and frame) size: 13 + 26 + 3 = 42 bytes
+Whole message (and frame) size: 15 + 26 + 3 = 44 bytes
 
 ---
 
@@ -477,7 +478,7 @@ Optional fields/values included:
 ```
 53 4E               # Magic "SN"
 01                  # Version
-00 02               # Message ID = 2
+00 00 00 02         # Message ID = 2
 1F                  # Flags ('0001 1111' continuation follows, all optional fields/values enabled)
 01 02 03 04 05 06   # Location ID
 02                  # MCU Type = STM32
@@ -487,7 +488,7 @@ Optional fields/values included:
 06                  # Sensor Count = 6
 ```
 
-Frame 1 Header size: 28 bytes
+Frame 1 Header size: 30 bytes
 
 **Sensor Blocks (fills primary frame up until 125 bytes)**
 ```
@@ -532,7 +533,7 @@ XX XX XX          # 3-byte BCH ECC
 
 Frame 1 ECC size: 3 Bytes
 
-Whole Frame 1 size: 28 + 92 + 3 = 123 bytes
+Whole Frame 1 size: 30 + 92 + 3 = 125 bytes
 
 ---
 
@@ -582,4 +583,4 @@ Frame 2 ECC size: 3 Bytes
 
 Whole Frame 2 size: 2 + 76 + 3 = 81 bytes
 
-Whole message size: 123 + 81 = 204 bytes
+Whole message size: 125 + 81 = 206 bytes
