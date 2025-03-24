@@ -49,14 +49,14 @@ Boolean flags are bits of the **Flags** field in frame header. ( 1 = True / Enab
 
 | Field               | Size (Bytes) | Description                                                         |
 |---------------------|--------------|---------------------------------------------------------------------|
-| **Magic Bytes**     | 3            | ASCII "ESN" (0x45 0x53 0x4E)                                        |
+| **Magic Bytes**     | 2            | ASCII "ESN" (0x45 0x53 0x4E)                                        |
 | **Version**         | 1            | Protocol version (0x01)                                             |
 | **Flags**           | 1            | Bit 0 = Continuation Flag, other bits: see Flags description below  |
 | **Message ID**      | 2            | 16-bit message sequence ID (rolls over)                             |
-| **Location ID**     | 5            | Unique 40-bit deployment ID                                         |
+| **Location ID**     | 6            | Unique 48-bit deployment ID                                         |
 | **Sensor Count**    | 1            | Number of sensor blocks in this frame                               |
 | **MCU Type**        | 1            | **optional** Device type (e.g. 1 = ESP32, 2 = STM32)                |
-| **MCU Serial**      | 4            | **optional** Unique device serial (from MAC/UID)                    |
+| **MCU Serial**      | 12           | **optional** Unique device serial (from MAC/UID)                    |
 | **Firmware Version**| 2            | **optional** Major.Minor firmware version                           |
 
 ---
@@ -410,12 +410,12 @@ Optional fields/values omitted:
 
 **Frame Header:**
 ```
-45 53 4E         # Magic "ESN"
-01               # Version
-00 01            # Message ID = 1
-00               # Flags (no continuation or optional fields/values)
-01 02 03 04 05   # Location ID
-02               # Sensor Count = 2
+53 4E              # Magic "SN"
+01                 # Version
+00 01              # Message ID = 1
+00                 # Flags (no continuation or optional fields/values)
+01 02 03 04 05 06  # Location ID
+02                 # Sensor Count = 2
 ```
 
 Frame Header size: 13 bytes
@@ -475,18 +475,19 @@ Optional fields/values included:
 
 **Frame 1 (Primary)**
 ```
-45 53 4E          # Magic "ESN"
-01                # Version
-00 02             # Message ID = 2
-1F                # Flags ('0001 1111' continuation follows, all optional fields/values enabled)
-01 02 03 04 05    # Location ID
-02                # MCU Type = STM32
-12 34 56 78       # MCU Serial
-00 02             # Firmware v0.2
-06                # Sensor Count = 6
+53 4E               # Magic "SN"
+01                  # Version
+00 02               # Message ID = 2
+1F                  # Flags ('0001 1111' continuation follows, all optional fields/values enabled)
+01 02 03 04 05 06   # Location ID
+02                  # MCU Type = STM32
+12 34 56 78 90 12   # MCU Serial
+34 56 78 90 12 34   # MCU Serial
+00 02               # Firmware v0.2
+06                  # Sensor Count = 6
 ```
 
-Frame 1 Header size: 20 bytes
+Frame 1 Header size: 28 bytes
 
 **Sensor Blocks (fills primary frame up until 125 bytes)**
 ```
@@ -531,20 +532,17 @@ XX XX XX          # 3-byte BCH ECC
 
 Frame 1 ECC size: 3 Bytes
 
-Whole Frame 1 size: 20 + 92 + 3 = 115 bytes
+Whole Frame 1 size: 28 + 92 + 3 = 123 bytes
 
 ---
 
 **Frame 2 (Continuation)**
 ```
-45 53 4E          # Magic "ESN"
-01                # Version
-00 02             # Message ID = 2
 10                # Flags=0 ('0001 0000' no continuation, all optional fields/values enabled)
 02                # Sensor Count=4
 ```
 
-Frame 2 Header size: 8 bytes
+Frame 2 Header size: 2 bytes
 
 **Sensor Blocks:**
 ```
@@ -582,6 +580,6 @@ XX XX XX          # 3-byte BCH ECC
 
 Frame 2 ECC size: 3 Bytes
 
-Whole Frame 2 size: 8 + 76 + 3 = 87 bytes
+Whole Frame 2 size: 2 + 76 + 3 = 81 bytes
 
-Whole message size: 115 + 87 = 202 bytes
+Whole message size: 123 + 81 = 204 bytes
