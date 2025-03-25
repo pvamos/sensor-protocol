@@ -403,11 +403,14 @@ The protocol uses **BCH(1023,1003)** forward error correction to ensure reliable
 
 ---
 
-### BCH Implementation in the Linux kernel `lib/bch.c`
+### BCH Implementation in the Linux kernel's `lib/bch.c`
 
-A universal Bose-Chaudhuri-Hocquenghem (BCH) solution is included in the Linux kernel code, published under GNU General Public License version 2 at:
+A universal and well tested Bose-Chaudhuri-Hocquenghem (BCH) solution is included in the Linux kernel code, published under GNU General Public License version 2 at:
 
 https://github.com/torvalds/linux/blob/master/lib/bch.c
+
+> Based on this universal approach, a custom library optimized for BCH(1023,1003) encoding only is included.
+> The BCH related code is in `components/bch/bch.c` and `components/bch/bch.h`, these 2 files are also published under GNU GPLv2.
 
 ---
 
