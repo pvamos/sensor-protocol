@@ -328,57 +328,115 @@ Example:
 
 ---
 
-## 🧬 Error Correction with BCH(1023,1001)
+## 🧬 Error Correction with BCH(1023,1003)
 
-The protocol uses **BCH(1023,1001)** forward error correction for reliability.
+The protocol uses **BCH(1023,1003)** forward error correction to ensure reliable delivery of binary sensor data over potentially noisy or lossy links.
+
+---
 
 ### Properties
 
-- **Data length:** 1001 bits (~125 bytes)
-- **Code length:** 1023 bits (~128 bytes)
-- **ECC length:** 22 bits (~3 bytes)
-- **Error correction capability:**
-  - Detects up to 4-bit errors
-  - Corrects up to **2-bit errors** per frame
+| Property             | Value                                                  |
+|----------------------|--------------------------------------------------------|
+| Codeword length `n` | 1023 bits (127.875 bytes)                               |
+| Message length `k`  | 1003 bits (125.375 bytes)                               |
+| ECC bits            | 20 bits (~2.5 bytes, aligned to 3 bytes)                |
+| Error correction    | Up to **2-bit correction**, detects up to 4-bit errors  |
+| Field size          | GF(2<sup>10</sup>)                                      |
+| Overhead            | ~1.95%                                                  |
+
+---
+
+### Encoding & Decoding Flow
+
+```text
+ ┌─────────────────────────────┐
+ │   1003-bit Message Payload  │
+ └─────────────────────────────┘
+                 │
+                 ▼
+      Pad to 125.375 bytes if needed
+                 │
+                 ▼
+     ┌──────────────────────────────┐
+     │  BCH Encode (t=2, m=10)      │
+     └──────────────────────────────┘
+                 │
+                 ▼
+┌──────────────────────────────────────────┐
+│ 1023-bit Codeword = Message + 20-bit ECC │
+└──────────────────────────────────────────┘
+                 │
+                 ▼
+         Transmit over MQTT
+                 │
+                 ▼
+     ┌──────────────────────────────┐
+     │  BCH Decode + Error Correct  │
+     └──────────────────────────────┘
+                 │
+                 ▼
+       Recovered 1003-bit Message
+```
+
+---
 
 ### Encoding and Decoding
 
-- The 125-byte payload (header + sensor data) is zero-padded to 1001 bits.
-- A 22-bit ECC is calculated and stored as the final 3 bytes of the frame.
-- On decode, if 1–2 bits are flipped due to noise/interference, the message can be automatically corrected.
-- Frames with more than 2 errors are discarded or logged.
+- Payloads up to **125 bytes** (1000 bits) are padded to **1003 bits**.
+- The **20-bit ECC** is computed using BCH encoding and stored as the final **3 bytes** of the frame.
+- On reception:
+  - If **1–2 bits** are flipped due to noise, they are corrected.
+  - If **3–4 bits** are flipped, errors are detected but uncorrectable.
+  - If more than 4 errors: frame is **discarded or logged**.
 
-### Why BCH(1023,1003?
+---
 
-- Minimal overhead (~2.4%)
-- Strong correction capability for low-bandwidth environments
-- Efficient software/hardware implementations exist for ESP32 and STM32
+### Why BCH(1023,1003)?
 
-> Each frame is protected independently, allowing partial reconstruction of multi-frame messages.
+- ✅ **Minimal overhead** (~2%)
+- ✅ **Strong protection** in noisy environments
+- ✅ Efficient **software implementations** on ESP32 / STM32
+- ✅ **Supported by Linux kernel** (`lib/bch.c`) and various embedded toolkits
+
+> Each frame is protected independently, enabling partial recovery from lost or corrupted frames.
+
+---
 
 ### Detailed BCH Algorithm
 
 A typical implementation flow for **BCH(1023,1003)** is:
-1. **Message Preparation**:  Collect up to 125 bytes (1000 bits) of payload + 1 padding bit to make 1001.
-2. **Galois Field Setup**:   The code is defined over GF(2^m), typically m=10 for length 1023.
-3. **Polynomial Representation**: The generator polynomial G(x) is chosen to correct up to 2 bits.
-4. **Encoding**:
-   - Represent the payload bits as a polynomial M(x).
-   - Multiply M(x) by x^(n−k), then divide by G(x). The remainder is the ECC.
-   - Append the ECC (22 bits) to form the final codeword C(x).
-5. **Transmission**: Send the 125-byte data + 3-byte ECC over MQTT.
-6. **Decoding**:
-   - Receive codeword C'(x). If no errors, C'(x) ≈ C(x).
-   - Compute syndrome S(x) = C'(x) mod G(x).
-   - If S(x)=0, no errors. If not zero, attempt up to 2-bit error correction.
-   - Corrected codeword yields the original message M(x).
 
-> This process is typically wrapped in library calls for hardware-accelerated or bitwise-optimized code on ESP32/STM32.
-> The user application only needs to pass the 125 bytes for encoding/decoding.
+1. **Message Preparation**
+   - Gather up to **125 bytes** of payload.
+   - Add up to 3 bits of **zero padding** to reach 1003 bits.
+
+2. **Galois Field Setup**
+   - Use **GF(2<sup>10</sup>)**, where `m = 10`, `n = 2^m - 1 = 1023`.
+
+3. **Polynomial Representation**
+   - Generator polynomial `G(x)` is chosen to correct up to **2-bit errors**.
+
+4. **Encoding**
+   - Represent message as `M(x)`.
+   - Multiply by `x^(n-k)`, divide by `G(x)`, take remainder as **ECC**.
+   - Append ECC to message to get full codeword `C(x)`.
+
+5. **Transmission**
+   - Send `C(x)` (message + 3-byte ECC) over the wire (e.g., via MQTT).
+
+6. **Decoding**
+   - Receive possibly corrupted `C'(x)`.
+   - Compute **syndromes** to detect errors.
+   - If syndromes = 0 → no error.
+   - If syndromes ≠ 0 → attempt to locate and correct up to 2 errors.
+   - Return corrected message `M(x)`.
+
+> Libraries (or hardware accelerators) encapsulate these steps. The application just provides and receives message data.
 
 ---
 
-## 🚀 Future Extensions
+## 🚀 Future Protocl Extension Possibilities
 
 - Add sensor value type flags (e.g., float64, int32)
 - Optional compression of payload
