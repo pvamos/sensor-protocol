@@ -3,7 +3,7 @@
 ## 🧭 Overview
 
 This document defines a compact, extensible binary protocol used by IoT end devices to transmit sensor data.
-The format supports robust error correction using BCH(1023,1001), optional fields like GPS and timestamp, and multi-frame messages for large sensor sets.
+The format supports robust error correction using BCH(1023,1003), optional fields like GPS and timestamp, and multi-frame messages for large sensor sets.
 
 ## 🧩 Protocol Version
 
@@ -96,7 +96,7 @@ After the header comes at least one sensor block.
 
 | Field   | Size (Bytes) | Description                                                                   |
 |---------|--------------|-------------------------------------------------------------------------------|
-| **ECC** | 3            | 22-bit **BCH(1023,1001)** for 125-byte payload (corrects up to 2-bit errors)  |
+| **ECC** | 3            | 22-bit **BCH(1023,1003)** for 125-byte payload (corrects up to 2-bit errors)  |
 
 ---
 
@@ -348,7 +348,7 @@ The protocol uses **BCH(1023,1001)** forward error correction for reliability.
 - On decode, if 1–2 bits are flipped due to noise/interference, the message can be automatically corrected.
 - Frames with more than 2 errors are discarded or logged.
 
-### Why BCH(1023,1001)?
+### Why BCH(1023,1003?
 
 - Minimal overhead (~2.4%)
 - Strong correction capability for low-bandwidth environments
@@ -358,7 +358,7 @@ The protocol uses **BCH(1023,1001)** forward error correction for reliability.
 
 ### Detailed BCH Algorithm
 
-A typical implementation flow for **BCH(1023,1001)** is:
+A typical implementation flow for **BCH(1023,1003)** is:
 1. **Message Preparation**:  Collect up to 125 bytes (1000 bits) of payload + 1 padding bit to make 1001.
 2. **Galois Field Setup**:   The code is defined over GF(2^m), typically m=10 for length 1023.
 3. **Polynomial Representation**: The generator polynomial G(x) is chosen to correct up to 2 bits.
