@@ -436,7 +436,7 @@ A typical implementation flow for **BCH(1023,1003)** is:
 
 ---
 
-## 🚀 Future Protocl Extension Possibilities
+## 🚀 Future Protocol Extension Possibilities
 
 - Add sensor value type flags (e.g., float64, int32)
 - Optional compression of payload
