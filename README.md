@@ -146,7 +146,7 @@ Maximum payload per frame: **125 bytes**, followed by **3-byte ECC**.
 - **Message ID** 2^32 = 4 294 967 296 (rolls over)
 - **MCU Serial:** 2^96 (UID / left zero padded MAC address)
 - **Sensor Type IDs:** 2^16 = 65 536
-- **Timestamp Range:** 64-bit nanoseconds (covers until year 2262)
+- **Timestamp Range:** 64-bit milliseconds precision Unix timestamp (covers until year 292 million)
 
 ---
 
@@ -159,10 +159,10 @@ Maximum payload per frame: **125 bytes**, followed by **3-byte ECC**.
 
 ## 📜 Encoding Notes
 
-- All multibyte integers are **big-endian**.
+- All multibyte integers are **little-endian**.
 - All floating-point values are IEEE 754 **float32**.
 - Battery voltage, timestamps and GPS use virtual sensor blocks.
-- Timestamp is represented as two float32 values encoding a float64 UNIX timestamp.
+- Timestamp is represented as 8 bytes (64 bits) int64_t little endian values encoding the millisecond precision UNIX timestamp.
 
 ---
 
@@ -170,16 +170,16 @@ Maximum payload per frame: **125 bytes**, followed by **3-byte ECC**.
 
 All values are encoded as IEEE 754 **float32** (4 bytes each).
 
-| Value Type         | Range             | Precision                                                         |
-|--------------------|-------------------|-------------------------------------------------------------------|
-| Temperature (°C)   | -50 to +150       | ~0.001°C                                                          |
-| Humidity (%RH)     | 0 to 100          | ~0.001%                                                           |
-| Pressure (hPa)     | 300 to 1100       | ~0.01 hPa                                                         |
-| GPS Latitude/Long. | ±90 / ±180        | ~±0.000001 (~1 cm)                                                |
-| GPS Altitude (m)   | -500 to +10,000   | ~0.001 m                                                          |
-| Timestamp (ns)     | 0 to ~year 2262   | Nanosecond precision using float64 (split into 2 float32 values)  |
+| Value Type         | Range             | Precision              |
+|--------------------|-------------------|------------------------|
+| Temperature (°C)   | -50 to +150       | ~0.001°C               |
+| Humidity (%RH)     | 0 to 100          | ~0.001%                |
+| Pressure (hPa)     | 300 to 1100       | ~0.01 hPa              |
+| GPS Latitude/Long. | ±90 / ±180        | ~±0.000001 (~1 cm)     |
+| GPS Altitude (m)   | -500 to +10,000   | ~0.001 m               |
+| Timestamp (ms)     | 0 to ~year 2262   | Millisecond precision  |
 
-> Float32 offers about **6–7 significant digits** of precision, which is sufficient for environmental sensor data, high-resolution GPS, and time measurements.
+> Float32 offers about **6–7 significant digits** of precision, which is sufficient for environmental sensor data, and high-resolution GPS measurements.
 
 ---
 
@@ -228,16 +228,16 @@ Example:
 ### Timestamp Block (Sensor Type: 1)
 
 - Value Count: 2
-- Values: float32 (high and low parts of UNIX timestamp in nanoseconds)
+- Values: float32 (high and low parts of UNIX timestamp in milliseconds)
 
 Example:
-- Timestamp: 1700000000123456789 ns (2023-11-14T00:13:20Z)
+- Timestamp: 1699920800000 ms (2023-11-14T00:13:20Z)
 - Float64 split into hi/lo float32s:
 
 ```hex
 00 01 02
-5E 6B D3 00   # hi part
-49 96 02 2B   # lo part
+00 01 8C 61   # hi part
+80 70 00 00   # lo part
 ```
 
 ### GPS Coordinates Block (Sensor Type: 2)
@@ -565,8 +565,8 @@ Frame 1 Header size: 30 bytes
 40 70 66 66       # ~3.76 V
 
 00 01 02          # Timestamp: type=1, count=2
-5E 6B D3 00       # hi part
-49 96 02 2B       # lo part
+00 01 8C 61       # hi part
+80 70 00 00       # lo part
 
 00 02 03          # GPS: type=2, count=3
 42 20 AE D0       # lat=48.1351
